@@ -1,0 +1,53 @@
+# Creative Tab
+itemGroup.jss=Just Some Stuff
+
+# Blocks
+tile.jss.obsidianSteelLined.name=Lined Obsidian Steel
+tile.jss.obsidianSteelBlock.name=Block of Obsidian Steel
+tile.jss.moltenObsidianSteel.name=Molten Obsidian Steel
+
+# Items
+item.jss.resources.0.name=Clear Ink
+item.jss.resources.1.name=Invisible Ink
+item.jss.resources.1.tooltip=&cf=oTotally not a Botania ripoff./nCraft with (almost) any armor.
+item.jss.resources.2.name=Obsidian Steel Ingot
+item.jss.resources.3.name=Obsidian Steel Nugget
+item.jss.resources.4.name=Iron Stick
+item.jss.resources.5.name=Screwdriver
+item.jss.resources.6.name=Wither Essence
+item.jss.resources.6.tooltip=&cf=oDrops from Wither Skeletons./n&cf=oDrops more often from Withers.
+item.jss.resources.7.name=Fading Soul
+item.jss.resources.7.tooltip=&cf=oYe who fear not death,/n&cf=orestore me with a ghastly light...
+item.jss.resources.8.name=Soul Shard
+item.jss.resources.8.tooltip=&cf=oI am thou... Thou art I...
+
+item.jss.obsidiSteelSword.name=Obsidian Steel Sword
+item.jss.soulsword.name=Anima Blade
+item.jss.emptyHeart.name=Empty Heart
+item.jss.emptyHeart.tooltip=&cf=oSeeking to join&cf=6 %s
+
+# Entity
+entity.jss.unborn.name=The Unborn
+
+# Tooltip
+tooltip.jss.invisibleink=&cf=o&cf=3Dabbed with a bit of clear ink.
+tooltip.jss.soulsword.bounded.none=&cf=oA lost spirit, looking for a home...
+tooltip.jss.soulsword.bounded.player=&cf=oBounded to&cf=6 %s.
+tooltip.jss.soulsword.bounded.notowner=&cf=o&cf=4YOU ARE NOT MY OWNER!
+tooltip.jss.soulsword.info=&cf=oDeal 10% damage, but at a cost...
+
+# Material
+material.jss.obsidianSteel=Obsidian Steel
+
+# Fluid
+fluid.molten.jss.obsidianSteel=Molten Obsidian Steel
+
+# Damage
+death.attack.jss.souldamage=%1$s angered a bounded spirit
+
+# Messages
+message.jss.emptyheart.peaceful=&cf=4In a world without suffering, empty hearts need no home, and &cf=4the heart fades away
+message.jss.emptyheart.creative=&cf=4Your almighty power proves too much, as the heart &cf=4disintegrates in your hand.
+message.jss.emptyheart.full=&cf=4Unfortunately, you have no room for the empty heart. It &cf=4fades away, looking for a new home...
+message.jss.emptyheart.notowner=&cf=4Scared by the unknown being holding it, the empty &cf=4heart fades away out of fear...
+message.jss.emptyheart.accept=&cf=2As the empty hearts joins your being, you begin to feel &cf=2more...whole...

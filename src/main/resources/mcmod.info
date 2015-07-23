@@ -1,0 +1,11 @@
+[
+{
+  "modid": "jss",
+  "name": "Just Some Stuff",
+  "description": "Just a mod to add stuff I wanted...",
+  "version" : "${version}",
+  "mcversion": "${mcversion}",
+  "url": "http://www.lomeli12.net/",
+  "authorList": ["Lomeli12"]
+}
+]
