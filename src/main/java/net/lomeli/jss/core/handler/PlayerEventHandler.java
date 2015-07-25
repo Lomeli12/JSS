@@ -4,18 +4,20 @@ import java.util.List;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChatComponentText;
 
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
+import cpw.mods.fml.relauncher.ReflectionHelper;
 
+import net.lomeli.jss.asm.event.PlayerCraftItemEvent;
 import net.lomeli.jss.core.helper.HealthModifierHelper;
 import net.lomeli.jss.entities.EntityUnborn;
 import net.lomeli.jss.items.ModItems;
@@ -80,6 +82,7 @@ public class PlayerEventHandler {
                         unborn.writeToNBT(tag);
                         event.player.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG).setTag(ModNBT.UNBORN_LOGGED_OUT, tag);
                         unborn.setDead();
+                        // efficient
                         break;
                     }
                 }
@@ -95,20 +98,19 @@ public class PlayerEventHandler {
                 HealthModifierHelper.removeHeartLoss(event.player);
                 amount--;
             }
-            HealthModifierHelper.applyModifier(event.player, amount);
+            if (amount >= -5)
+                HealthModifierHelper.applyModifier(event.player, amount);
         }
     }
 
     @SubscribeEvent
-    public void playerAttackEntity(AttackEntityEvent event) {
+    public void playerCraftsItem(PlayerCraftItemEvent event) {
         EntityPlayer player = event.entityPlayer;
-        Entity target = event.target;
-        ItemStack hand = player.getCurrentEquippedItem();
-        if (!player.worldObj.isRemote && target != null) {
-            if (hand != null) {
-                if (hand.getItem() == ModItems.soulSword) {
-                    //event.setCanceled(true);
-                }
+        ItemStack output = event.craftingOutput;
+        if (player != null && output != null && !player.worldObj.isRemote) {
+            if (output.getItem() == ModItems.emptyHeart) {
+                if (HealthModifierHelper.heartCount(player) > -5)
+                    event.setCanceled(true);
             }
         }
     }

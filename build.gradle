@@ -79,6 +79,9 @@ processResources {
 }
 
 jar {
+    manifest {
+        attributes("FMLCorePlugin": "net.lomeli.jss.asm.JSSLoadingPlugin", "FMLCorePluginContainsFMLMod": "true")
+    }
 	appendix = "$mcVersion"
     classifier = "universal"
 }

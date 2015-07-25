@@ -4,6 +4,8 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 
+import net.minecraftforge.oredict.RecipeSorter;
+
 import cpw.mods.fml.common.registry.GameRegistry;
 
 import net.lomeli.lomlib.core.recipes.ShapedFluidRecipe;
@@ -28,7 +30,10 @@ public class ModRecipes {
         addShaped(new ItemStack(ModBlocks.linedObsidiSteel, 8), "OIO", "IOI", "OIO", 'I', "blockObsidianSteel", 'O', Blocks.obsidian);
         addShaped(new ItemStack(ModItems.obsidiSteelSword), "O", "O", "S", 'S', "stickWood", 'O', "ingotObsidianSteel");
         addShaped(new ItemStack(ModItems.soulSword), "SNS", "SNS", "DED", 'S', new ItemStack(ModItems.resources, 1, 8), 'N', Items.nether_star, 'D', "blockDiamond", 'E', "gemEmerald");
+        addShaped(new ItemStack(ModItems.emptyHeart), "SFS", "FDF", "SFS", 'D', "blockDiamond", 'F', new ItemStack(ModItems.resources, 1, 7), 'S', Items.nether_star);
+        addShaped(new ItemStack(ModItems.emptyHeart), "FSF", "SDS", "FSF", 'D', "blockDiamond", 'F', new ItemStack(ModItems.resources, 1, 7), 'S', Items.nether_star);
 
+        RecipeSorter.register("jss.inkrecipe", InkRecipe.class, RecipeSorter.Category.UNKNOWN, "");
         GameRegistry.addRecipe(new InkRecipe());
     }
 

@@ -6,6 +6,7 @@ import java.util.UUID;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityCreature;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.EntityAISwimming;
 import net.minecraft.entity.ai.EntityAIWatchClosest;
@@ -14,13 +15,17 @@ import net.minecraft.entity.monster.EntityPigZombie;
 import net.minecraft.entity.monster.EntitySkeleton;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.projectile.EntityArrow;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.potion.Potion;
+import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EntityDamageSource;
 import net.minecraft.world.EnumDifficulty;
 import net.minecraft.world.World;
 
@@ -38,6 +43,8 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
     private static final float MAX_HEALTH = 450f;
     private static final int MOB_SPAWN_TICKS = 140;
     private static final int TELEPORT_DELAY = 90;
+    private boolean flyingDisabled;
+    private boolean lastStand;
 
     public EntityUnborn(World world) {
         super(world);
@@ -61,42 +68,84 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
         ChunkCoordinates source = getSource();
         EntityPlayer target = getTargetAsPlayer();
         if (getHealth() > 0f) {
-            //if (!worldObj.isRemote) {
             boolean lowFlag = getHealth() <= (getMaxHealth() / 4);
+            disableFlight();
+
+            // Enable last stand
+            if (!lastStand && lowFlag) {
+                teleportTo(source.posX + 0.5f, source.posY + 2, source.posZ + 0.5f);
+                setAttackMode(5);
+                setTPDelay(TELEPORT_DELAY / 2);
+                lastStand = true;
+            }
+
             // Teleporting
             int tpTick = getTPDelay() - 1;
             if (tpTick <= 0 || recentlyHit >= 99) {
                 tpTick = TELEPORT_DELAY / (lowFlag ? 2 : 1);
-                int attempts = 0;
-                while (!teleportRandomly() && attempts < 50)
-                    attempts++;
-                if (attempts >= 50)
-                    teleportTo(source.posX + 0.5f, source.posY + 2, source.posZ + 0.5f);
+                teleportAndChangeMode(source, -1);
             }
             setTPDelay(tpTick);
 
             int attackMode = getAttackMode();
             switch (attackMode) {
-                case 1:
+                case 1: // Flame
                     if (worldObj.getTotalWorldTime() % 10L == 0) {
-                        for (int i = -7; i < 8; i++)
-                            for (int j = -7; j < 8; j++) {
-                                double x = MathHelper.floor(this.posX + i) + worldObj.rand.nextFloat();
-                                double y = MathHelper.floor(this.posY) + 0.5;
-                                double z = MathHelper.floor(this.posZ + j) + worldObj.rand.nextFloat();
-                                if (pointDistanceSpace(this.posX, this.posY, this.posZ, x, y, z) < 6)
-                                    worldObj.spawnParticle("flame", x, y, z, 0, 0, 0);
-                            }
+                        spawnParticles("flame", 6, true);
                         if (pointDistanceSpace(this.posX, this.posY, this.posZ, target.posX, target.posY, target.posZ) < 6)
-                            target.setFire(12);
+                            target.setFire(12 * (lowFlag ? 2 : 1));
                     }
                     break;
-                default: // Mob spawning
+                case 2: // Homing Arrows
+                    if (worldObj.getTotalWorldTime() % 30L == 0) {
+                        if (!worldObj.isRemote) {
+                            EntityArrow arrow = new EntityArrow(worldObj, this, 0.5f);
+                            arrow.setDamage(8f);
+                            arrow.setPosition(this.posX, this.posY + 2, this.posZ);
+                            arrow.setIsCritical(true);
+                            worldObj.spawnEntityInWorld(arrow);
+                            moveEntity(arrow, Vector3.fromEntityCenter(target), lowFlag ? 0.5f : 0.25f);
+                        }
+                    }
+                    break;
+                case 3: // Posion
+                    if (worldObj.getTotalWorldTime() % 10L == 0)
+                        spawnParticles("smoke", 4, false);
+                    double poisonDistance = pointDistanceSpace(this.posX, this.posY, this.posZ, target.posX, target.posY, target.posZ);
+                    if (poisonDistance < 4 && !worldObj.isRemote)
+                        target.addPotionEffect(new PotionEffect(Potion.poison.getId(), 200 * (lowFlag ? 2 : 1)));
+                    break;
+                case 4: // Drain
+                    if (worldObj.getTotalWorldTime() % 10L == 0)
+                        spawnParticles("heart", 2, false);
+                    double drainDistance = pointDistanceSpace(this.posX, this.posY, this.posZ, target.posX, target.posY, target.posZ);
+                    if (drainDistance < 2) {
+                        target.attackEntityFrom(DamageSource.causeMobDamage(this), 1f);
+                        this.heal(1.5f);
+                    }
+                    if (!target.isSneaking())
+                        moveEntity(target, Vector3.fromEntityCenter(this), 0.05f * (lowFlag ? 2 : 1));
+                    break;
+                case 5: // Hamon
+                    if (worldObj.getTotalWorldTime() % 10L == 0)
+                        spawnParticles("enchantmenttable", 3, false);
+                    if (target.boundingBox.intersectsWith(this.boundingBox.expand(2, 2, 2)) && tpTick <= 3) {
+                        if (!worldObj.isRemote) {
+                            DamageSource hamon = hamonDamage(this);
+                            target.func_110142_aN().func_94547_a(hamon, target.getMaxHealth(), target.getMaxHealth());
+                            target.setHealth(0);
+                            target.onDeath(hamon);
+                        }
+                    }
+
+                    if (!target.isSneaking())
+                        moveEntity(target, Vector3.fromEntityCenter(this), 0.1f);
+                    break;
+                case 0: // Mob spawning
                     int mobSpawn = getMobSpawnTicks() - 1;
                     if (mobSpawn <= 0) {
                         mobSpawn = (lowFlag ? MOB_SPAWN_TICKS / 2 : MOB_SPAWN_TICKS);
-                        if (worldObj.rand.nextFloat() < 0.8f)
-                            spawnUndeadMobs();
+                        spawnUndeadMobs();
                     }
                     setMobSpawnTicks(mobSpawn);
                     break;
@@ -108,16 +157,47 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
                     double y = MathHelper.floor(source.posY) - 0.5;
                     double z = MathHelper.floor(source.posZ + j) + worldObj.rand.nextFloat();
                     if (MathHelper.floor(pointDistanceSpace(source.posX, source.posY, source.posZ, x, y, z)) == 12) {
-                        worldObj.spawnParticle("smoke", x, y, z, 0, 0, 0);
-                        worldObj.spawnParticle("smoke", x, y + 1, z, 0, 0, 0);
+                        worldObj.spawnParticle("largesmoke", x, y, z, 0, 0, 0);
+                        worldObj.spawnParticle("largesmoke", x, y + 1, z, 0, 0, 0);
                     }
                 }
 
             // Pulling running player
             if (pointDistanceSpace(target.posX, target.posY, target.posZ, source.posX, source.posY, source.posZ) > 12)
-                pullTarget(getTargetAsPlayer(), new Vector3(source.posX, source.posY, source.posZ), 0.5f);
-            //}
+                moveEntity(getTargetAsPlayer(), new Vector3(source.posX, source.posY, source.posZ), 0.03f);
         }
+    }
+
+    private void spawnParticles(String particleName, int range, boolean sameY) {
+        int min = -(range - 1);
+        int max = range + 2;
+        for (int i = min; i < max; i++)
+            for (int j = min; j < max; j++) {
+                if (sameY) {
+                    double x = MathHelper.floor(this.posX + i) + worldObj.rand.nextFloat();
+                    double y = MathHelper.floor(this.posY) + worldObj.rand.nextFloat();
+                    double z = MathHelper.floor(this.posZ + j) + worldObj.rand.nextFloat();
+                    if (pointDistanceSpace(this.posX, this.posY, this.posZ, x, y, z) < range)
+                        worldObj.spawnParticle(particleName, x, y, z, 0, 0, 0);
+                } else {
+                    for (int k = min; k < max; k++) {
+                        double x = MathHelper.floor(this.posX + i) + worldObj.rand.nextFloat();
+                        double y = MathHelper.floor(this.posY + k) + worldObj.rand.nextFloat();
+                        double z = MathHelper.floor(this.posZ + j) + worldObj.rand.nextFloat();
+                        if (pointDistanceSpace(this.posX, this.posY, this.posZ, x, y, z) < range)
+                            worldObj.spawnParticle(particleName, x, y, z, 0, 0, 0);
+                    }
+                }
+            }
+    }
+
+    private void teleportAndChangeMode(ChunkCoordinates source, int mode) {
+        int attempts = 0;
+        while (!teleportRandomly() && attempts < 50)
+            attempts++;
+        if (attempts >= 50)
+            teleportTo(source.posX + 0.5f, source.posY + 2, source.posZ + 0.5f);
+        setAttackMode(mode != -1 ? mode : worldObj.rand.nextInt(5));
     }
 
     @Override
@@ -164,9 +244,24 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
     }
 
     private void spawnUndeadMobs() {
-        if (worldObj.isRemote) return;
+        if (worldObj.isRemote)
+            return;
+        ChunkCoordinates source = getSource();
+        List<EntityLivingBase> entityList = worldObj.getEntitiesWithinAABB(EntityLivingBase.class, AxisAlignedBB.getBoundingBox(source.posX, source.posY, source.posZ, source.posX + 1, source.posY + 1, source.posZ + 1).expand(8f, 8f, 8f));
+        int count = 0;
+        if (entityList != null && entityList.size() > 0) {
+            for (EntityLivingBase entity : entityList) {
+                if (entity != null && EntityUtil.isHostileEntity(entity))
+                    count++;
 
-        for (int i = 0; i < worldObj.rand.nextInt(4); i++) {
+                if (count >= 5)
+                    break;
+            }
+        }
+
+        for (int i = 0; i < worldObj.rand.nextInt(4) + 1; i++) {
+            if (count >= 5)
+                return;
             EntityCreature creature;
             switch (worldObj.rand.nextInt(4)) {
                 case 1:
@@ -189,11 +284,13 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
                     break;
             }
             if (worldObj.rand.nextBoolean())
-                creature.setCurrentItemOrArmor(1, new ItemStack(Items.iron_helmet));
+                creature.setCurrentItemOrArmor(4, new ItemStack(Items.iron_helmet));
             creature.setPosition(this.posX, this.posY, this.posZ);
             creature.setAttackTarget(getTargetAsPlayer());
-            if (creature != null)
+            if (creature != null) {
                 worldObj.spawnEntityInWorld(creature);
+                count++;
+            }
         }
     }
 
@@ -207,7 +304,7 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
 
     @Override
     public boolean attackEntityFrom(DamageSource source, float amount) {
-        Entity attacker = source.getSourceOfDamage();
+        Entity attacker = source.isProjectile() ? source.getEntity() : source.getSourceOfDamage();
         if (attacker == null || attacker.getUniqueID() == null || !attacker.getUniqueID().equals(this.getTargetUUID()))
             return false;
         if (source.isUnblockable())
@@ -221,29 +318,20 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
         return super.attackEntityFrom(source, amount);
     }
 
-    private void infectNearbyPlayers(int x, int y, int z) {
-        List<EntityPlayer> playerList = worldObj.getEntitiesWithinAABB(EntityPlayer.class, AxisAlignedBB.getBoundingBox(x, y, z, x + 1, y + 1, z + 1).expand(8f, 8f, 8f));
-        if (playerList != null && playerList.size() > 0) {
-            for (EntityPlayer player : playerList) {
-                if (player != null && getTargetUUID().equals(player.getUniqueID()) && !HealthModifierHelper.markedForLoss(player)) {
-                    HealthModifierHelper.markForLoss(player);
-                    break;
-                }
-            }
-        }
-    }
-
     @Override
     protected void onDeathUpdate() {
         super.onDeathUpdate();
+        EntityPlayer target = getTargetAsPlayer();
         if (!worldObj.isRemote) {
-            EntityPlayer target = getTargetAsPlayer();
+
             if (HealthModifierHelper.markedForLoss(target))
                 HealthModifierHelper.removeHeartLoss(target);
         }
+        if (flyingDisabled)
+            target.capabilities.allowFlying = true;
     }
 
-    private void pullTarget(EntityPlayer target, Vector3 origin, float mod) {
+    private void moveEntity(Entity target, Vector3 origin, float mod) {
         Vector3 targetVec = Vector3.fromEntityCenter(target);
         Vector3 finalVector = origin.clone().sub(targetVec);
 
@@ -253,7 +341,6 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
         target.motionX = finalVector.getX() * mod;
         target.motionY = (finalVector.getY() + 1) * mod;
         target.motionZ = finalVector.getZ() * mod;
-        target.attackEntityFrom(DamageSource.generic, 0.5f);
     }
 
     private boolean isTargetDead() {
@@ -306,6 +393,10 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
         dataWatcher.updateObject(21, uuid.toString());
     }
 
+    private DamageSource hamonDamage(EntityUnborn cause) {
+        return new EntityDamageSource("jss.hamon", cause);
+    }
+
     @Override
     public void writeEntityToNBT(NBTTagCompound tag) {
         super.writeEntityToNBT(tag);
@@ -339,6 +430,16 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
         this.setTargetUUID(uuid);
     }
 
+    private void disableFlight() {
+        EntityPlayer player = getTargetAsPlayer();
+        if (player != null && (player.capabilities.allowFlying && !player.capabilities.isCreativeMode)) {
+            player.capabilities.allowFlying = false;
+            flyingDisabled = true;
+        }
+        if (player.capabilities.isFlying)
+            player.capabilities.isFlying = false;
+    }
+
     // Copied from Botania
     protected boolean teleportRandomly() {
         double d0 = posX + (rand.nextDouble() - 0.5D) * 64.0D;
@@ -348,7 +449,6 @@ public class EntityUnborn extends EntityCreature implements IBossDisplayData {
     }
 
     protected boolean teleportTo(double par1, double par3, double par5) {
-        setAttackMode(worldObj.rand.nextInt(5));
         double d3 = posX;
         double d4 = posY;
         double d5 = posZ;

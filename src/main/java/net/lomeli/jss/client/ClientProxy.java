@@ -3,6 +3,7 @@ package net.lomeli.jss.client;
 import net.minecraftforge.common.MinecraftForge;
 
 import cpw.mods.fml.client.registry.RenderingRegistry;
+import cpw.mods.fml.common.FMLCommonHandler;
 
 import net.lomeli.jss.client.handler.EventHandlerClient;
 import net.lomeli.jss.client.handler.FluidIconHandler;
@@ -18,8 +19,6 @@ public class ClientProxy extends Proxy {
     @Override
     public void preInit() {
         super.preInit();
-        IconHandler.getIconHandler().addIconToStich("circle");
-
         IconHandler.getIconHandler().initEvent();
     }
 
@@ -30,8 +29,12 @@ public class ClientProxy extends Proxy {
 
         ModRender.ctRenderID = RenderingRegistry.getNextAvailableRenderId();
 
-        MinecraftForge.EVENT_BUS.register(new EventHandlerClient());
+        EventHandlerClient eventHandlerClient = new EventHandlerClient();
+
+        MinecraftForge.EVENT_BUS.register(eventHandlerClient);
         MinecraftForge.EVENT_BUS.register(new ItemTooltipHandler());
+
+        FMLCommonHandler.instance().bus().register(eventHandlerClient);
 
         RenderingRegistry.registerBlockHandler(new RenderConnectedBlock(ModRender.ctRenderID));
         RenderingRegistry.registerEntityRenderingHandler(EntityUnborn.class, new RenderUnborn(IconHandler.getIconHandler().getIcon("circle")));

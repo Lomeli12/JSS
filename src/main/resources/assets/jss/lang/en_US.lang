@@ -1,6 +1,9 @@
 # Creative Tab
 itemGroup.jss=Just Some Stuff
 
+# Recipe
+recipe.jss.inkrecipe=Ink Recipe
+
 # Blocks
 tile.jss.obsidianSteelLined.name=Lined Obsidian Steel
 tile.jss.obsidianSteelBlock.name=Block of Obsidian Steel
@@ -44,6 +47,7 @@ fluid.molten.jss.obsidianSteel=Molten Obsidian Steel
 
 # Damage
 death.attack.jss.souldamage=%1$s angered a bounded spirit
+death.attack.jss.hamon=%2$s took %1$s with them
 
 # Messages
 message.jss.emptyheart.peaceful=&cf=4In a world without suffering, empty hearts need no home, and &cf=4the heart fades away

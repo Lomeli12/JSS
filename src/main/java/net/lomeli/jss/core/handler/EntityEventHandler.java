@@ -22,7 +22,7 @@ public class EntityEventHandler {
     public void entityDropEvent(LivingDropsEvent event) {
         DamageSource source = event.source;
         EntityLivingBase entity = event.entityLiving;
-        Entity attacker = source.getSourceOfDamage();
+        Entity attacker = source.isProjectile() ? source.getEntity() : source.getSourceOfDamage();
         if (!entity.worldObj.isRemote) {
             if (entity instanceof EntityWither && EntityUtil.damageFromPlayer(source)) {
                 EntityPlayer player = (EntityPlayer) attacker;
